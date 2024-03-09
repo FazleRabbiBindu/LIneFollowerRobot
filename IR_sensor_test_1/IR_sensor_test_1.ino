@@ -11,21 +11,28 @@ Serial1.begin(9600);
 }
 
 void loop() {
+  readSensor();
   sendData();
-  if(Serial1.available()>0)
-  {
-//    char data =Serial1.read();
-//    String value = String(data);
-//    Serial.print(value);
-    readSensor();
-    showSignalData(); 
-  }
+  
 }
+
+
+
+
+
 
 int readSensor(){
   for(int i=0; i<8; i++)
   {
-    signalData[i] = analogRead(signalPins[i]);
+    if(analogRead(signalPins[i])>250)
+    {
+      signalData[i] = 1;      
+    }
+    else
+    {
+      signalData[i] = 0;
+    }
+
   }
 }
 void sendData(){
@@ -35,7 +42,7 @@ void sendData(){
 }
 String showSignalData(){
   String data = "";
-  for(int i=0; i<8; i++)
+  for(int i=7; i>=0; i--)
   {
     Serial.print(signalData[i]);
     Serial.print(" ");
