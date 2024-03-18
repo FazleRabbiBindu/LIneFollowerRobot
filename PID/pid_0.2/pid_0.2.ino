@@ -4,6 +4,16 @@ int flag=0;
 
 int motorControl[] = {2,3,4,5,9,10}; //lm1,lm2,rm1,rm2,enA,enB
 
+// int P, D, I, previousError, PIDvalue, error;
+// int lsp, rsp;
+// int lfspeed = 200;
+
+// bool cal = true;
+
+// float Kp = 0;
+// float Kd = 0;
+// float Ki = 0;
+
 int readSensor();
 String showSignalData();
 void sendData();

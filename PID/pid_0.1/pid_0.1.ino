@@ -1,7 +1,7 @@
 const int signalPins[] = {A2,A3,A4,A5,A6};
 int signalData[8];
 
-int motorControl[] = {2,3,4,5,9,10};
+int motorControl[] = {2,3,4,5,A7,A8};
 
 int P, D, I, previousError, PIDvalue, error;
 int lsp, rsp;
@@ -20,7 +20,7 @@ int minValues[6], maxValues[6], threshold[6];
 void setup() {
   Serial.begin(9600);
   for(int i = 0; i<6; i++) {
-    pinMode(signalPin[i],INPUT);
+    pinMode(signalPins[i],INPUT);
   }
   for(int i = 0; i<6; i++) {
     pinMode(motorControl[i],OUTPUT);
@@ -31,31 +31,43 @@ void setup() {
 }
 
 void loop(){
-  // calibration();
-  // if(cal) {
-  //   calibration();
-  //   cal = false;
-  // }
 
-  if(analogRead(1) > threshold && analogRead(5) < threshold)
-  {
-    hardLeft();
-  }
-  else if(analogRead(1) < threshold && analogRead(5) > threshold)
+  if(analogRead(1) < threshold && analogRead(5) > threshold)
   {
     hardRight();
   }
-  else if(analogRead(3) > threshold)
+  else if(analogRead(1) > threshold && analogRead(5) < threshold)
+  {
+    hardLeft();
+  }
+  else if(analogRead(3) < threshold)
   {
     Kp = 0.005 * (1000 - analogRead(3));
     Kd = 10 * Kp;
     lineFollow();
   }
+  Serial.print("one");
+  Serial.println(analogRead(1));
+
+  Serial.print("two");
+  Serial.println(analogRead(2));
+
+  Serial.print("three ");
+  Serial.println(analogRead(3));
+
+  Serial.print("four");
+  Serial.println(analogRead(4));
+
+  Serial.print("five");
+  Serial.println(analogRead(5) );
+
 }
 
 void lineFollow()
 {
   int error = (analogRead(2) - analogRead(4));
+
+
 
   P = error;
   I = I + error;
@@ -79,6 +91,8 @@ void lineFollow()
   if(rsp < 0) {
     rsp = 0;
   }
+  analogWrite(7, lsp);
+  analogWrite(8, rsp);
   Forward();
 
 }
@@ -91,6 +105,7 @@ int readSensor() {
     //   signalData[i] = 0;
     // }
   }
+  Serial.println(readSensor());
 }
 
 void calibration() {
@@ -131,6 +146,7 @@ void hardLeft()
   digitalWrite(motorControl[2], HIGH);
   digitalWrite(motorControl[3], LOW);
   // Full speed
+  Serial.println("going left");
 }
 
 void hardRight()
@@ -141,12 +157,13 @@ void hardRight()
   digitalWrite(motorControl[2], LOW);
   digitalWrite(motorControl[3], HIGH);
   // Full speed
+
+  Serial.println("going right");
 }
 
 void Forward()
 {
-  analogWrite(motorControl[4], lsp);
-  analogWrite(motorControl[5], rsp);
+  
 
   analogWrite(motorControl[4], LOW);
   analogWrite(motorControl[5], HIGH);
@@ -154,6 +171,9 @@ void Forward()
   digitalWrite(motorControl[2], LOW);
   digitalWrite(motorControl[3], HIGH);
 
-  
- 
+  Serial.println("");
+ Serial.print("Forward ");
+ Serial.print(lsp);
+ Serial.print(" ");
+ Serial.println(rsp);
 }
