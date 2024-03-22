@@ -1,16 +1,15 @@
-const int signalPins[] = {A2,A3,A4,A5,A6};
-int signalData[8];
+const int signalPins[] = {A5,A4,A3,A2,A1,A0};
 
-int motorControl[] = {2,3,4,5,A7,A8};
-
+int motorControl[] = {2,3,4,5,9,10};
+int signalData[6];
 int P, D, I, previousError, PIDvalue, error;
 int lsp, rsp;
-int lfspeed = 200;
+int lfspeed = 80;
 
 bool cal = true;
 
-float Kp = 0;
-float Kd = 0;
+float Kp = 70;
+float Kd = 120;
 float Ki = 0;
 
 int thershold = 450;
@@ -25,49 +24,69 @@ void setup() {
   for(int i = 0; i<6; i++) {
     pinMode(motorControl[i],OUTPUT);
   }
-
-  analogWrite(motorControl[4], lfspeed);
-  analogWrite(motorControl[5], lfspeed);
 }
 
 void loop(){
-
-  if(analogRead(1) < threshold && analogRead(5) > threshold)
+  if(pidError() == 0)
   {
-    hardRight();
+    analogWrite(motorControl[4], 80);
+    analogWrite(motorControl[5], 80);
+  }else if (pidError() == 10)
+  { 
+    Stop();
   }
-  else if(analogRead(1) > threshold && analogRead(5) < threshold)
-  {
-    hardLeft();
-  }
-  else if(analogRead(3) < threshold)
-  {
-    Kp = 0.005 * (1000 - analogRead(3));
-    Kd = 10 * Kp;
+  else{
     lineFollow();
   }
-  Serial.print("one");
-  Serial.println(analogRead(1));
+    Forward();
 
-  Serial.print("two");
-  Serial.println(analogRead(2));
 
-  Serial.print("three ");
-  Serial.println(analogRead(3));
+  // if(analogRead(1) < threshold && analogRead(5) > threshold)
+  // {
+  //   analogWrite(motorControl[4], lfspeed);
+  //   analogWrite(motorControl[5], lfspeed);
+  //   hardRight();
+  // }
+  // else if(analogRead(1) > threshold && analogRead(5) < threshold)
+  // {
+    
+  //   analogWrite(motorControl[4], lfspeed);
+  //   analogWrite(motorControl[5], lfspeed);
+  //   hardLeft();
+  // }
+  // else if(analogRead(3) < threshold)
+  // {
+  //   Kp = 0.005 * (1000 - analogRead(3));
+  //   Kd = 10 * Kp;
+  //   lineFollow();
+  //   Forward();
+  // }
 
-  Serial.print("four");
-  Serial.println(analogRead(4));
+  // Serial.print(analogRead(1));
+  // Serial.print(" ");
 
-  Serial.print("five");
-  Serial.println(analogRead(5) );
+  // // Serial.print("two");
+  // Serial.print(analogRead(2));
+  // Serial.print(" ");
+
+  // // Serial.print("three ");
+  // Serial.print(analogRead(3));
+  // Serial.print(" ");
+
+  // // Serial.print("four");
+  // Serial.print(analogRead(4));
+  // Serial.print(" ");
+
+  // // Serial.print("five");
+  // Serial.print(analogRead(5) );
+  // Serial.print(" ");
 
 }
 
 void lineFollow()
 {
-  int error = (analogRead(2) - analogRead(4));
-
-
+  error = pidError();
+  
 
   P = error;
   I = I + error;
@@ -76,36 +95,33 @@ void lineFollow()
   PIDvalue = (Kp * P) + (Ki * I) + (Kd * D);
   previousError = error;
 
-  lsp = lfspeed - PIDvalue;
-  rsp = lfspeed + PIDvalue;
+  lsp = lfspeed + PIDvalue;
+  rsp = lfspeed - PIDvalue;
+  
+  lsp = map(lsp, -1295, 1805, 0,100);
+  rsp = map(rsp, -1295, 1805, 0,100);
+  // constrain(lsp,0,255);
+  // constrain(rsp,0,255);
 
-  if(lsp > 255) {
-    lsp = 255;
-  }
-  if(lsp < 0) {
-    lsp = 0;
-  }
-  if(rsp > 255) {
-    rsp = 255;
-  }
-  if(rsp < 0) {
-    rsp = 0;
-  }
-  analogWrite(7, lsp);
-  analogWrite(8, rsp);
-  Forward();
+  analogWrite(motorControl[4], lsp);
+  analogWrite(motorControl[5], rsp);
+  Serial.print("lsp: ");
+  Serial.print(lsp);
+  Serial.print("rsp: ");
+  Serial.print(rsp);
+  Serial.print(" errror: ");
+  Serial.println(error);
 
 }
 
 int readSensor() {
-  for(int i=0; i<8; i++) {
-    // if(analogRead(signalPins[i])>250) {
-      signalData[i] = analogRead(signalPins[i]);
-    // }else {
-    //   signalData[i] = 0;
-    // }
-  }
-  Serial.println(readSensor());
+  for(int s=0; s<6; s++) {
+    if(analogRead(signalPins[s])>450) {
+      signalData[s] = 0;
+      }else {
+      signalData[s] = 1;
+    }
+    }
 }
 
 void calibration() {
@@ -138,11 +154,72 @@ void calibration() {
   Serial.println();
 }
 
+int pidError(){
+  readSensor();
+
+  if(signalData[0] == 1 && signalData[1] == 0 && signalData[2] == 0 && signalData[3] == 0 && signalData[4] == 0 && signalData[5] == 0)
+  {
+    error = -5;
+  }
+  else if(signalData[0] == 1 && signalData[1] == 1 && signalData[2] == 0 && signalData[3] == 0 && signalData[4] == 0 && signalData[5] == 0)
+  {
+    error =-4;
+  }
+  else if(signalData[0] == 0 && signalData[1] == 1 && signalData[2] == 0 && signalData[3] == 0 && signalData[4] == 0 && signalData[5] == 0)
+  {
+    error = -3;
+  }
+    else if(signalData[0] == 0 && signalData[1] == 1 && signalData[2] == 1 && signalData[3] == 0 && signalData[4] == 0 && signalData[5] == 0)
+  {
+    error = -2;
+  }
+  else if(signalData[0] == 0 && signalData[1] == 0 && signalData[2] == 1 && signalData[3] == 0 && signalData[4] == 0 && signalData[5] == 0)
+  {
+    error = -1;
+  }
+    else if(signalData[0] == 0 && signalData[1] == 0 && signalData[2] == 1 && signalData[3] == 1 && signalData[4] == 0 && signalData[5] == 0)
+  {
+    error = 0;
+  }
+  else if(signalData[0] == 0 && signalData[1] == 0 && signalData[2] == 0 && signalData[3] == 1 && signalData[4] == 0 && signalData[5] == 0)
+  {
+    error = 1;
+  }
+    else if(signalData[0] == 0 && signalData[1] == 0 && signalData[2] == 0 && signalData[3] == 1 && signalData[4] == 1 && signalData[5] == 0)
+  {
+    error = 2;
+  }
+  else if(signalData[0] == 0 && signalData[1] == 0 && signalData[2] == 0 && signalData[3] == 0 && signalData[4] == 1 && signalData[5] == 0)
+  {
+    error = 3;
+  }
+    else if(signalData[0] == 0 && signalData[1] == 0 && signalData[2] == 0 && signalData[3] == 0 && signalData[4] == 1 && signalData[5] == 1)
+  {
+    error = 4;
+  }
+  else if (signalData[0] == 0 && signalData[1] == 0 && signalData[2] == 0 && signalData[3] == 0 && signalData[4] == 0 && signalData[5] == 1)
+  {
+    error = 5;
+  }
+  else if (signalData[0] == 0 && signalData[1] == 0 && signalData[2] == 0 && signalData[3] == 0 && signalData[4] == 0 && signalData[5] == 0) 
+  {
+    error = 10;
+  }
+  // else{ error = 10;}
+  // Serial.print("Error: ");
+  // Serial.println(error);
+  return error;
+}
+
 void hardLeft()
 {
+  analogWrite(motorControl[4], 100);
+  analogWrite(motorControl[5], 150);
+  
+  // Right
   digitalWrite(motorControl[0], LOW);
   digitalWrite(motorControl[1], HIGH);
-   // Full speed
+   // Left
   digitalWrite(motorControl[2], HIGH);
   digitalWrite(motorControl[3], LOW);
   // Full speed
@@ -151,9 +228,13 @@ void hardLeft()
 
 void hardRight()
 {
+  analogWrite(motorControl[4], 150);
+  analogWrite(motorControl[5], 100);
+
+  // Right motor
   digitalWrite(motorControl[0], HIGH);
   digitalWrite(motorControl[1], LOW);
-   // Full speed
+   // Left
   digitalWrite(motorControl[2], LOW);
   digitalWrite(motorControl[3], HIGH);
   // Full speed
@@ -163,17 +244,19 @@ void hardRight()
 
 void Forward()
 {
-  
+ Serial.println("");
+ Serial.print("Forward "); 
 
-  analogWrite(motorControl[4], LOW);
-  analogWrite(motorControl[5], HIGH);
-
+  digitalWrite(motorControl[0], LOW);
+  digitalWrite(motorControl[1], HIGH);
   digitalWrite(motorControl[2], LOW);
   digitalWrite(motorControl[3], HIGH);
+}
 
-  Serial.println("");
- Serial.print("Forward ");
- Serial.print(lsp);
- Serial.print(" ");
- Serial.println(rsp);
+void Stop(){
+digitalWrite(motorControl[0], LOW);
+  digitalWrite(motorControl[1], LOW);
+  digitalWrite(motorControl[2], LOW);
+  digitalWrite(motorControl[3], LOW);
+
 }
